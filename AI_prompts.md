@@ -356,3 +356,36 @@ None needed. The first prompt produced:
 All of it was verified by `test_safety.py` against the live API.
 
 ---
+
+## Submission — Public GitHub repo
+
+**Prompt 1**
+
+> Put your code in a folder named "hw4" and push it to a public GitHub
+> repository. On Canvas, submit the repo URL (the link graders can open and
+> clone). You do NOT upload a zip for this homework. Do not put your real
+> ".env", "campus_customs.db", or product images in the Github repo. Use
+> ".gitignore". Include ".env.example" with placeholders only. Expected file
+> layout: (see screenshots) The agent itself is four files under "backend/":
+> "prompts/prompt.md", "agent.py", "tools.py", and "models.py". "README.md"
+> should explain how to run the front end and back end after placing the data
+> pack.
+
+(Attached screenshots of the expected file layout and the local-only data
+pack.)
+
+**Follow-up prompt**
+
+None needed. The vibe coder:
+- Added `.gitignore`, `.env.example`, and a root `requirements.txt`, and
+  rewrote the README around placing the data pack.
+- Built a clean `hw4/` folder and tested it the way a grader would: the
+  original data pack, a fresh virtual environment and `npm install`, the
+  backend on a fresh database, and a frontend build.
+- After I confirmed the repo name and a private noreply commit email, pushed
+  it to https://github.com/Jbosmediano683/hw4.
+
+The college crests, which are cropped from product images, are kept out of
+git and rebuilt locally from the data pack.
+
+---
