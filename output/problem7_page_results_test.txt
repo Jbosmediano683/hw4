@@ -1,0 +1,30 @@
+
+> What hoodies do you have?  (6.4s)
+   reply: I put all **27 hoodies** on the page. Tap any card for sizes and details, or tell me a color, Yale team, or style to narrow it down.
+   chat cards: []
+   page_results: ('Hoodies', 27)
+   DB check: 27/27 expected on page, 0 extra
+
+> Show me navy hoodies under $70  (11.8s)
+   reply: I found 23 navy hoodies under $70 and put them on the page—tap any card to browse prices, colors, and details. 🐶
+   chat cards: []
+   page_results: ('Navy hoodies under $70', 23)
+   DB check: 23/23 expected on page, 0 extra
+
+> Anything for Branford college?  (3.9s)
+   reply: I found **1 Branford College item** and put it on the page: a quarter-zip pullover. Tap the card for details, or tell me if you’re looking for a hoodie, crewneck, or tee specifically.
+   chat cards: []
+   page_results: ('Branford College gear', 1)
+   DB check: 1/1 expected on page, 0 extra
+
+> Do you have pink hoodies?  (3.9s)
+   reply: I’m not seeing any pink hoodies in the catalogue right now. The closest options are **Basic Hoodie Big Yale** and **Champion Reverse Weave Hoodie 1**, available in navy or white.
+   chat cards: ['basic-hoodie-big-yale', 'champion-reverse-weave-hoodie-1']
+   page_results: None
+   DB check: page_results should be empty -> OK
+
+> How much is the Boola Boola T Shirt?  (4.5s)
+   reply: The **Boola Boola T Shirt** is **$32.00**.
+   chat cards: ['boola-boola-t-shirt']
+   page_results: None
+   DB check: page_results should be empty -> OK

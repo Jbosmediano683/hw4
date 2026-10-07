@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Campus Customs — App Check (Problem 11)</title>
+<style>
+  :root { --yale: #00356b; --ink: #1d2433; --muted: #5b6577; --ok: #1b7f4b; --bad: #b3261e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink); background: #f4f6fa; }
+  header { background: var(--yale); color: #fff; padding: 36px 24px 28px; }
+  header h1 { margin: 0 0 6px; font: 600 2rem/1.2 Georgia, "Times New Roman", serif; }
+  header p { margin: 0; opacity: .85; }
+  main { max-width: 1120px; margin: 0 auto; padding: 24px; }
+  nav.toc { background: #fff; border: 1px solid #dfe4ee; border-radius: 12px; padding: 14px 20px; margin-bottom: 28px; }
+  nav.toc a { color: var(--yale); }
+  section { background: #fff; border: 1px solid #dfe4ee; border-radius: 14px; padding: 24px 26px; margin-bottom: 30px; }
+  h2 { margin: 0 0 4px; font: 600 1.5rem/1.3 Georgia, serif; color: var(--yale); }
+  .verdict { display: inline-block; margin: 6px 0 14px; padding: 3px 12px; border-radius: 999px; font-weight: 700; font-size: .85rem; }
+  .pass { background: #e3f4ea; color: var(--ok); } .fail { background: #fbe5e3; color: var(--bad); }
+  figure { margin: 18px 0; }
+  figure img { display: block; width: 100%; height: auto; border: 1px solid #cfd6e3; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+  figure.narrow img { max-width: 420px; }
+  figcaption { margin-top: 8px; color: var(--muted); font-size: .95rem; }
+  figcaption strong { color: var(--ink); }
+  .row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 22px; align-items: start; }
+  blockquote { margin: 10px 0; padding: 10px 14px; background: #f1f5fb; border-left: 4px solid var(--yale); border-radius: 6px; }
+  table { border-collapse: collapse; margin: 8px 0; font-size: .92rem; }
+  th, td { border: 1px solid #dfe4ee; padding: 4px 10px; text-align: left; }
+  th { background: #f1f5fb; }
+  code { background: #eef2f8; padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+  footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 10px 0 30px; }
+  @media (max-width: 860px) { .row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Campus Customs — App Check</h1>
+  <p>Problem 11 · Live-site test run October 6, 2026 at 7:47 PM · site <code style="background:rgba(255,255,255,.15);color:#fff">http://localhost:5174</code>, API on :8000, agent model <code style="background:rgba(255,255,255,.15);color:#fff">gpt-5.6-luna</code></p>
+</header>
+<main>
+<nav class="toc"><strong>Checks:</strong>
+  <a href="#check1">1. Chat checks inventory (honest stock &amp; price)</a> ·
+  <a href="#check2">2. Dynamic search-result cards</a> ·
+  <a href="#check3">3. Problem 9 usability feature</a>
+  <br><small>Screenshots were captured automatically from the running site in a headless Microsoft Edge browser
+  (<code>scripts/app_check.py</code>); every database value below was read from <code>data/campus_customs.db</code> during the same run.</small>
+<br><small>Click any screenshot to open it full size.</small></nav>
+
+<section id="check1">
+  <h2>1. Chat checks the inventory level of an item</h2>
+  <span class="verdict pass">PASS: reply matches the database</span>
+  <p>On the <strong>Baseball Left Chest Crewneck</strong> product page, a guest asked the Bulldog Concierge:</p>
+  <blockquote>“How much is this, and do you have it in XL and in a medium?”</blockquote>
+  <div class="row">
+    <figure>
+      <a href="app_check_images/inventory.png" target="_blank"><img src="app_check_images/inventory.png" alt="Product page for the Baseball Left Chest Crewneck with the chat open showing the stock answer" /></a>
+      <figcaption><strong>Proves:</strong> the agent understood “this” from the open product page and answered from live data. The size buttons on the page (left) and the chat reply (right) show the same stock.</figcaption>
+    </figure>
+    <figure class="narrow">
+      <a href="app_check_images/inventory_chat.png" target="_blank"><img src="app_check_images/inventory_chat.png" alt="Close-up of the chat reply about price and stock" /></a>
+      <figcaption><strong>Close-up of the reply</strong> (1.6 s): “The Baseball Left Chest Crewneck is $58.00. Sorry, it’s sold out in XL, but we have 5 left in Medium—it’s going fast.”</figcaption>
+    </figure>
+  </div>
+  <p><strong>Database truth</strong> for <code>baseball-left-chest-crewneck</code>: price <strong>$58.00</strong>.</p>
+  <table><tr><th>Size</th><th>Quantity (inventory table)</th><th>Status</th></tr><tr><td>XS</td><td>0</td><td>sold out</td></tr><tr><td>S</td><td>15</td><td>in stock</td></tr><tr><td>M</td><td>5</td><td>low (≤5)</td></tr><tr><td>L</td><td>25</td><td>in stock</td></tr><tr><td>XL</td><td>0</td><td>sold out</td></tr><tr><td>XXL</td><td>25</td><td>in stock</td></tr></table>
+  <ul><li>✅ quotes $58.00</li><li>✅ XL (0) sold out</li><li>✅ M (5) reported</li></ul>
+  <p>The reply’s price and its XL / M stock statements match these rows exactly. Nothing was invented.</p>
+</section>
+
+<section id="check2">
+  <h2>2. Dynamic search-result cards after a category question</h2>
+  <span class="verdict pass">PASS: 27 cards on the page · 27 hoodies in the database</span>
+  <p>From the Home page, a guest asked <strong>“What hoodies do you have?”</strong>. The agent returned structured
+  <code>page_results</code>, and the site moved to the Products page and rendered them as product cards.</p>
+  <figure>
+    <a href="app_check_images/search_cards.png" target="_blank"><img src="app_check_images/search_cards.png" alt="Products page showing 'From your chat — Hoodies' with hoodie cards" /></a>
+    <figcaption><strong>Proves:</strong> the chat answer (“I found 27 hoodies—mostly Yale navy, white, and gray styles, including full-zips, family designs, and sports hoodies. I put them all on the page; tap any card to browse.”) updated the page itself. The section
+    “✦ From your chat · Hoodies” shows 27 cards with image, name, price, and short description.
+    These are exactly the 27 hoodies in the catalogue.</figcaption>
+  </figure>
+  <figure>
+    <a href="app_check_images/search_click_through.png" target="_blank"><img src="app_check_images/search_click_through.png" alt="Detail page opened by clicking a chat-placed card" /></a>
+    <figcaption><strong>Proves:</strong> a card the chat put on the page still opens the single-item page.
+    Clicking “Basic Hoodie Big Yale” opened <code>/products/basic-hoodie-big-yale</code>, with a large image and full product info.</figcaption>
+  </figure>
+</section>
+
+<section id="check3">
+  <h2>3. Problem 9 usability feature: shop by apparel type</h2>
+  <span class="verdict pass">PASS: menu, aisle tabs, breadcrumbs, and price sort all work</span>
+  <figure>
+    <a href="app_check_images/usability_shop_menu.png" target="_blank"><img src="app_check_images/usability_shop_menu.png" alt="Shop menu open in the navigation bar listing six apparel types" /></a>
+    <figcaption><strong>Proves:</strong> the new <strong>Shop ▾</strong> menu reaches every apparel type in one click, with live
+    style counts: Hoodies 27 styles · Crewnecks 29 styles · Quarter-Zips 11 styles · T-Shirts 25 styles · Long Sleeve 2 styles · Jackets &amp; Fleece 8 styles.</figcaption>
+  </figure>
+  <figure>
+    <a href="app_check_images/usability_sorted_aisle.png" target="_blank"><img src="app_check_images/usability_sorted_aisle.png" alt="Hoodies aisle with category tabs, breadcrumbs, and price low-to-high sort" /></a>
+    <figcaption><strong>Proves:</strong> choosing Hoodies opened <code>/products?category=hoodies&amp;sort=price-asc</code> with the
+    breadcrumb “Home / Shop / Hoodies”, the active tab “Hoodies 27”, and <em>Price: low to high</em>.
+    Cards run $45.00 → $88.00 in order.</figcaption>
+  </figure>
+</section>
+
+<footer>Generated by <code>scripts/app_check.py</code> · raw results in <code>output/app_check_results.json</code></footer>
+</main>
+</body>
+</html>

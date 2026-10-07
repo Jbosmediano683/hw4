@@ -1,0 +1,11 @@
+# Backend (FastAPI + PydanticAI agent)
+fastapi==0.142.2
+uvicorn[standard]==0.54.0
+pydantic-ai-slim[openai]==2.52.0
+python-dotenv==1.2.4
+
+# Optional dev tools (not needed to run the app)
+#   pillow      -> frontend/scripts/extract_crests.py  (rebuild college crests from the data pack)
+#   playwright  -> scripts/app_check.py                 (re-capture the app check screenshots; uses installed Microsoft Edge)
+# pillow==12.3.0
+# playwright==1.63.0

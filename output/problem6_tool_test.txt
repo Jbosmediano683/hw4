@@ -1,0 +1,42 @@
+
+> How much is the Boola Boola T Shirt?  (6.1s)
+   tool: search_catalogue({'query': 'Boola Boola T Shirt', 'limit': 8})
+   tool: get_product_price({'product_ids': ['boola-boola-t-shirt']})
+   reply: The **Boola Boola T Shirt** is **$32.00**.
+   cards: ['boola-boola-t-shirt']
+
+> Do you have the Baseball Left Chest Crewneck in XL?  (5.3s)
+   tool: search_catalogue({'query': 'Baseball Left Chest Crewneck', 'limit': 4})
+   tool: check_stock({'product_id': 'baseball-left-chest-crewneck', 'size': 'XL'})
+   reply: Sorry, the **Baseball Left Chest Crewneck** is sold out in XL. It’s currently available in S, M, L, and XXL.
+   cards: ['baseball-left-chest-crewneck']
+
+> How many mediums are left? [viewing baseball-left-chest-crewneck]  (2.9s)
+   tool: check_stock({'product_id': 'baseball-left-chest-crewneck', 'size': 'M'})
+   reply: Only 5 **Baseball Left Chest Crewneck** sweatshirts are left in Medium, so it’s going fast.
+   cards: ['baseball-left-chest-crewneck']
+
+> What sizes is this available in? [viewing baseball-left-chest-crewneck]  (3.4s)
+   tool: check_stock({'product_id': 'baseball-left-chest-crewneck'})
+   reply: The **Baseball Left Chest Crewneck** is currently available in **S, M, L, and XXL**. **M is low stock with 5 left**; XS and XL are sold out.
+   cards: ['baseball-left-chest-crewneck']
+
+> Do you have it in 3XL? [viewing baseball-left-chest-crewneck]  (3.4s)
+   tool: check_stock({'product_id': 'baseball-left-chest-crewneck', 'size': '3XL'})
+   reply: Sorry, the **Baseball Left Chest Crewneck** isn’t offered in 3XL. It’s currently available in S, M, L, and XXL.
+   cards: ['baseball-left-chest-crewneck']
+
+> What does the Branford 1/4 zip look like and what does it cost?  (6.0s)
+   tool: search_catalogue({'query': 'Branford 1/4 zip', 'limit': 8})
+   tool: get_product_description({'product_id': 'branford-1-4-zip'})
+   tool: get_product_price({'product_ids': ['branford-1-4-zip']})
+   reply: The **Branford 1/4 Zip** is a heather gray long-sleeve quarter-zip pullover with a stand collar, ribbed cuffs and hem, and a multicolor Branford College crest on the left chest. It’s **$72.00**.
+   cards: ['branford-1-4-zip']
+
+> Which hoodies do you have under $60?  (6.1s)
+   tool: search_catalogue({'query': 'hoodie', 'limit': 12, 'max_price': 60})
+   tool: get_product_price({'product_ids': ['ua-gameday-double-knit-hood', 'yale-sports-hoodie-tennis']})
+   reply: We have two hoodies under $60:
+- **Ua Gameday Double Knit Hood** — **$45.00**
+- **Yale Sports Hoodie Tennis** — **$45.00**
+   cards: ['ua-gameday-double-knit-hood', 'yale-sports-hoodie-tennis']

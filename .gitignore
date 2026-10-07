@@ -1,0 +1,44 @@
+# --- secrets ---
+.env
+.env.*
+!.env.example
+
+# --- local-only data pack (never commit the DB or product images) ---
+data/
+*.db
+*.db-journal
+*.sqlite
+
+# Crests are cropped from the product images, so they stay local too.
+# Rebuild them with: python frontend/scripts/extract_crests.py
+frontend/public/crests/
+frontend/scripts/crests_contact_sheet.png
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# --- Node / Vite ---
+node_modules/
+frontend/dist/
+frontend/node_modules/
+frontend/.vite/
+*.tsbuildinfo
+
+# --- runtime leftovers ---
+output/*.tmp
+output/*.json.tmp
+output/audit_trail.corrupt-*.json
+*.log
+
+# --- editor / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- assignment download ---
+*.zip

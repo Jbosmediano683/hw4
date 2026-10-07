@@ -1,0 +1,195 @@
+[
+ {
+  "label": "baseline (Problem 8 settings)",
+  "model": "gpt-5.6-luna",
+  "settings": {},
+  "avg_secs": 6.34,
+  "avg_requests": 3.0,
+  "avg_input_tokens": 10143,
+  "avg_output_tokens": 315,
+  "correct": "6/6",
+  "rows": [
+   {
+    "q": "How much is the Yale Dad Hoodie?",
+    "secs": 5.72,
+    "requests": 3,
+    "input_tokens": 8709,
+    "output_tokens": 137,
+    "tools": [
+     "search_catalogue",
+     "get_product_price"
+    ],
+    "correct": true,
+    "expect": "mentions $68.00",
+    "reply": "The **Yale Dad Hoodie** is **$68.00**."
+   },
+   {
+    "q": "Is the Berkeley quarter zip available in a small?",
+    "secs": 4.38,
+    "requests": 3,
+    "input_tokens": 8781,
+    "output_tokens": 135,
+    "tools": [
+     "search_catalogue",
+     "check_stock"
+    ],
+    "correct": true,
+    "expect": "S qty=8",
+    "reply": "Yes\u2014the **Berkeley 1/4 Zip** is available in Small, with **8 left**."
+   },
+   {
+    "q": "How many XL are left of the Squash Left Chest Hoodie?",
+    "secs": 7.27,
+    "requests": 3,
+    "input_tokens": 8780,
+    "output_tokens": 133,
+    "tools": [
+     "search_catalogue",
+     "check_stock"
+    ],
+    "correct": true,
+    "expect": "XL qty=12",
+    "reply": "There are **12 Squash Left Chest Hoodies** left in XL."
+   },
+   {
+    "q": "What colors does this come in?",
+    "secs": 3.09,
+    "requests": 2,
+    "input_tokens": 5896,
+    "output_tokens": 97,
+    "tools": [
+     "get_product_description"
+    ],
+    "correct": true,
+    "expect": "lists every color",
+    "reply": "The **Champion Full Zip Hood** comes in **charcoal gray, white, and navy blue**."
+   },
+   {
+    "q": "What crewnecks do you have?",
+    "secs": 4.86,
+    "requests": 2,
+    "input_tokens": 6861,
+    "output_tokens": 434,
+    "tools": [
+     "search_catalogue"
+    ],
+    "correct": true,
+    "expect": "page_results with ~28 crewnecks",
+    "reply": "I put our 28 crewnecks on the page. Tap any card for details, colors, and sizing\u2014or tell me if you\u2019d like to narrow it down by college, sport, or color."
+   },
+   {
+    "q": "Show me tees under $35",
+    "secs": 12.72,
+    "requests": 5,
+    "input_tokens": 21830,
+    "output_tokens": 956,
+    "tools": [
+     "search_catalogue",
+     "get_product_price",
+     "get_product_price",
+     "get_product_price"
+    ],
+    "correct": true,
+    "expect": "page_results with tees <= $35",
+    "reply": "I put all **25 tees under $35** on the page\u2014each is **$32.00**. Tap any card to browse details and colors, or tell me if you want to narrow it by college, sport"
+   }
+  ]
+ },
+ {
+  "label": "Problem 9 (lean settings + price in search + category)",
+  "model": "gpt-5.6-luna",
+  "settings": {
+   "openai_reasoning_effort": "low",
+   "openai_text_verbosity": "low",
+   "max_tokens": 1500,
+   "openai_prompt_cache_key": "campus-customs-agent-v1"
+  },
+  "avg_secs": 4.23,
+  "avg_requests": 2.33,
+  "avg_input_tokens": 7929,
+  "avg_output_tokens": 201,
+  "correct": "6/6",
+  "rows": [
+   {
+    "q": "How much is the Yale Dad Hoodie?",
+    "secs": 5.39,
+    "requests": 2,
+    "input_tokens": 6333,
+    "output_tokens": 99,
+    "tools": [
+     "search_catalogue"
+    ],
+    "correct": true,
+    "expect": "mentions $68.00",
+    "reply": "The **Yale Dad Hoodie** is **$68.00**."
+   },
+   {
+    "q": "Is the Berkeley quarter zip available in a small?",
+    "secs": 4.2,
+    "requests": 3,
+    "input_tokens": 9680,
+    "output_tokens": 136,
+    "tools": [
+     "search_catalogue",
+     "check_stock"
+    ],
+    "correct": true,
+    "expect": "S qty=8",
+    "reply": "Yes\u2014the **Berkeley 1/4 Zip** is available in Small, with **8 left**."
+   },
+   {
+    "q": "How many XL are left of the Squash Left Chest Hoodie?",
+    "secs": 4.73,
+    "requests": 3,
+    "input_tokens": 9703,
+    "output_tokens": 152,
+    "tools": [
+     "search_catalogue",
+     "check_stock"
+    ],
+    "correct": true,
+    "expect": "XL qty=12",
+    "reply": "We have **12** Squash Left Chest Hoodies left in XL."
+   },
+   {
+    "q": "What colors does this come in?",
+    "secs": 3.54,
+    "requests": 2,
+    "input_tokens": 6482,
+    "output_tokens": 88,
+    "tools": [
+     "get_product_description"
+    ],
+    "correct": true,
+    "expect": "lists every color",
+    "reply": "The **Champion Full Zip Hood** comes in **charcoal gray, white, and navy blue**."
+   },
+   {
+    "q": "What crewnecks do you have?",
+    "secs": 3.95,
+    "requests": 2,
+    "input_tokens": 7794,
+    "output_tokens": 413,
+    "tools": [
+     "search_catalogue"
+    ],
+    "correct": true,
+    "expect": "page_results with ~28 crewnecks",
+    "reply": "I found **29 crewnecks** and put them on the page. Tap any card for details, or tell me a college, sport, color, or style to narrow it down."
+   },
+   {
+    "q": "Show me tees under $35",
+    "secs": 3.58,
+    "requests": 2,
+    "input_tokens": 7583,
+    "output_tokens": 317,
+    "tools": [
+     "search_catalogue"
+    ],
+    "correct": true,
+    "expect": "page_results with tees <= $35",
+    "reply": "I put all 25 tees under $35 on the page\u2014each is $32.00. Tap a card to browse, or tell me a color or style to narrow it down."
+   }
+  ]
+ }
+]
