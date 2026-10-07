@@ -10,7 +10,9 @@ A Yale-blue, fall-on-campus storefront for **Campus Customs** (57 Broadway, New 
   - `agent.py`: agent wiring and run loop (model, tools, card vetting, audit)
   - `tools.py`: database tools (search, description, price, stock, customer profile)
   - `models.py`: Pydantic / PydanticAI structured types
-- Supporting backend modules: `auth.py` (accounts and sessions), `chat_store.py` (customer memory), `audit.py` (audit trail)
+- `agent.py` also writes the append-only audit trail (`output/audit_trail.json`).
+- Two FastAPI app modules (used by `main.py`, not part of the agent): `auth.py` (accounts and sessions) and `chat_store.py` (customer chat history)
+- `tests/`: agent checks, safety probes, and a benchmark
 - `output/`: harness, design, usability, app check, and `audit_trail.json`
 
 **How the system works** (architecture, model fields, tools, safety, specs): see **`output/harness.md`, Part A**.
@@ -93,14 +95,14 @@ Open **http://localhost:5174**. Vite proxies `/api` and `/media` to the backend 
   python frontend/scripts/extract_crests.py      # writes frontend/public/crests/*.png
   ```
 - **About-page photos:** drop `storefront.jpg`, `interior-1.jpg`, and `interior-2.jpg` into `frontend/public/about/`. They replace the labelled illustrations automatically.
-- **Tests and evidence scripts:**
+- **Tests and evidence scripts** (run from `hw4/` with the venv active):
 
   | Command | What it does |
   |---|---|
-  | `python test_tools_agent.py` (from `backend/`) | Price, stock, and description answers checked against the DB |
-  | `python test_page_results.py` (from `backend/`) | Category questions put the right cards on the page |
-  | `python test_safety.py` (from `backend/`, server running) | Safety probes through `/api/chat`; each turn appends to `output/audit_trail.json` |
-  | `python bench_agent.py <label>` (from `backend/`) | Latency, tokens, and correctness benchmark |
+  | `python tests/test_tools_agent.py` | Price, stock, and description answers checked against the DB |
+  | `python tests/test_page_results.py` | Category questions put the right cards on the page |
+  | `python tests/test_safety.py` (server running) | Safety probes through `/api/chat`; each turn appends to `output/audit_trail.json` |
+  | `python tests/bench_agent.py <label>` | Latency, tokens, and correctness benchmark |
   | `python scripts/app_check.py` (from `hw4/`, app running) | Re-captures `output/app_check.html` (needs `pip install playwright` and Microsoft Edge) |
 
 ## 7. API

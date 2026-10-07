@@ -1,11 +1,14 @@
 """Problem 6 check: ask price / stock / description questions and show which tools the agent called.
 
-Run from backend/:  python test_tools_agent.py
+Run from hw4/:  python tests/test_tools_agent.py
 """
 
 import asyncio
 import sys
 import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))  # import the backend modules
 
 from pydantic_ai.messages import ModelResponse, ToolCallPart
 

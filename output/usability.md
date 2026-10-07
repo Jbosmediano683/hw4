@@ -118,7 +118,7 @@ The footer is at the bottom of every page.
 - The prompt was updated to match: quote `price` from search hits, use
   `category` for browsing, and don't repeat lookups.
 
-**Measured** with `backend/bench_agent.py`: 6 fresh questions (price, stock
+**Measured** with `tests/bench_agent.py`: 6 fresh questions (price, stock
 by size, stock count, colors on a product page, a whole category, and a
 price-filtered category), each checked against the database. Full rows are in
 `output/bench_agent.json`.
@@ -172,6 +172,8 @@ under $35". Results land on the page in a few seconds. The settings are in
 | Agent `search_catalogue` work | 3.68 ms | **0.97 ms (−74%)** |
 | Product photo `Cache-Control` | none (re-validated every visit) | **public, max-age=86400** |
 | Catalogue requests while browsing Home → Shop menu → Quarter-Zips → Hoodies → product page | one per page | **1 total** (verified in the browser's network log) |
+
+*Measured at the end of Problem 9. Problem 10 later added per-size `stock` to every product, so today's payload is 70,123 bytes raw and **9,500 gzipped**, still 86% smaller.*
 
 (Over localhost the total request time stays in the single-digit to
 low-double-digit milliseconds either way. The byte savings and caching are

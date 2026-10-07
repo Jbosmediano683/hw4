@@ -1,7 +1,7 @@
 """Problem 9 benchmark: latency, model calls, tokens, and correctness per chat turn.
 
-Run from backend/:  python bench_agent.py <label>
-Results are appended to ../output/bench_agent.json so before/after runs can be compared.
+Run from hw4/:  python tests/bench_agent.py <label>
+Results are appended to output/bench_agent.json so before/after runs can be compared.
 The Portkey gateway caches identical requests, so each config must run on questions
 it hasn't seen with the same settings, or the timings measure the cache.
 """
@@ -12,6 +12,9 @@ import sqlite3
 import sys
 import time
 from pathlib import Path
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))  # import the backend modules
 
 from pydantic_ai.messages import ModelResponse, ToolCallPart
 

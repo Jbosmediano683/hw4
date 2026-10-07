@@ -1,11 +1,14 @@
 """Problem 7 check: browse questions should fill page_results; specific questions should not.
 
-Run from backend/:  python test_page_results.py
+Run from hw4/:  python tests/test_page_results.py
 """
 
 import asyncio
 import sys
 import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))  # import the backend modules
 
 import tools
 from agent import DB_PATH, run_chat

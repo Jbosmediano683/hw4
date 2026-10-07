@@ -1,16 +1,25 @@
 """Campus Customs agent: entry point and wiring.
 
-Loads the system prompt from prompts/prompt.md, connects a PydanticAI agent to
-the course model through Portkey, registers the tools from tools.py, and
-exposes run_chat() for main.py's /api/chat route.
+The agent is four files: prompts/prompt.md (system prompt), agent.py (this file),
+tools.py (database tools), and models.py (structured types).
+
+This file loads the system prompt, connects a PydanticAI agent to the course model
+through Portkey, registers the tools from tools.py, runs one chat turn for main.py's
+/api/chat route (run_chat), and appends every turn to the audit trail
+(output/audit_trail.json).
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
+import re
+import threading
 import time
+import uuid
+from datetime import datetime, timezone
 from typing import Literal
 from contextlib import contextmanager
 from functools import lru_cache
@@ -20,16 +29,27 @@ os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
 
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
+from pydantic import BaseModel
 from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded
-from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart, UserPromptPart
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    RetryPromptPart,
+    TextPart,
+    ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
+)
 from pydantic_ai.models.openai import OpenAIResponsesModel, OpenAIResponsesModelSettings
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.usage import UsageLimits
 
-import audit
 import tools
 from models import (
+    AuditEntry,
+    AuditToolCall,
     ChatReply,
     ChatResponse,
     CustomerProfile,
@@ -265,7 +285,7 @@ async def run_chat(
         viewing_product_id=viewing_product_id,
     )
     # Problem 12: every turn appends one entry to output/audit_trail.json, whatever the outcome.
-    entry = audit.new_entry(
+    entry = new_audit_entry(
         user_id=deps.user_id, page_path=page.path, product_id=viewing_product_id,
         message=message, model=MODEL_NAME, history_messages=len(history),
     )
@@ -280,18 +300,18 @@ async def run_chat(
     except ModelHTTPError as e:
         if e.status_code == 400 and "content_filter" in str(e.body):
             log.warning("Message blocked by the provider content filter")
-            entry.stop_reason, entry.reply = "content_filter", audit.short(FILTERED_REPLY, 200)
+            entry.stop_reason, entry.reply = "content_filter", _short(FILTERED_REPLY, 200)
             _finish_audit(entry, started)
             return ChatResponse(reply=FILTERED_REPLY)
-        entry.stop_reason, entry.error = "error", audit.short(f"ModelHTTPError {e.status_code}")
+        entry.stop_reason, entry.error = "error", _short(f"ModelHTTPError {e.status_code}")
         _finish_audit(entry, started)
         raise
     except UsageLimitExceeded as e:
-        entry.stop_reason, entry.error = "usage_limit", audit.short(str(e))
+        entry.stop_reason, entry.error = "usage_limit", _short(str(e))
         _finish_audit(entry, started)
         raise
     except (Exception, asyncio.CancelledError) as e:  # cancelled = client left or server reloading
-        entry.stop_reason, entry.error = "error", audit.short(f"{type(e).__name__}: {e}")
+        entry.stop_reason, entry.error = "error", _short(f"{type(e).__name__}: {e}")
         _finish_audit(entry, started)
         raise
     reply = result.output
@@ -321,9 +341,9 @@ async def run_chat(
         page_results=page_results,
     )
 
-    entry.tool_calls, entry.finish_reason = audit.tool_calls_from(result.new_messages())
+    entry.tool_calls, entry.finish_reason = _tool_calls_from(result.new_messages())
     entry.tool_calls = [c for c in entry.tool_calls if c.tool != "final_result"]
-    entry.reply = audit.short(response.reply, 200)
+    entry.reply = _short(response.reply, 200)
     entry.product_cards = len(response.products)
     if page_results:
         entry.page_results = f"{page_results.title} ({page_results.total})"
@@ -339,6 +359,109 @@ async def run_chat(
 def _finish_audit(entry, started: float) -> None:
     entry.duration_ms = round((time.perf_counter() - started) * 1000)
     try:
-        audit.append(entry)
+        append_audit(entry)
     except Exception:  # the audit log must never break a shopper's chat
         log.exception("Could not write audit entry")
+
+
+# ---------- audit trail (Problem 12) ----------
+# output/audit_trail.json is a JSON array. Every chat turn appends one AuditEntry; entries are never
+# removed or rewritten, and the file is never reset between runs. Writes are serialized with a lock and
+# done atomically (temp file + replace), so the file stays valid JSON even if the server stops mid-write.
+# Privacy: entries hold the user id only (no email/name), redacted message text, and short summaries.
+
+AUDIT_PATH = BACKEND_DIR.parent / "output" / "audit_trail.json"
+AUDIT_SHORT = 160  # max characters for args / results in the log
+_audit_lock = threading.Lock()
+
+# 12-19 digits, optionally separated by spaces or dashes: looks like a payment card number.
+CARD_RE = re.compile(r"\b\d(?:[ -]?\d){11,18}\b")
+
+
+def redact(text: str) -> str:
+    """Mask anything that looks like a payment card number (used for the model, chat history, and the log)."""
+    return CARD_RE.sub("[redacted number]", text)
+
+
+def _short(value, limit: int = AUDIT_SHORT) -> str:
+    if isinstance(value, BaseModel):
+        text = value.model_dump_json()
+    elif isinstance(value, (list, tuple)) and value and isinstance(value[0], BaseModel):
+        text = json.dumps([v.model_dump(mode="json") for v in value], ensure_ascii=False)
+    elif isinstance(value, (dict, list)):
+        text = json.dumps(value, ensure_ascii=False, default=str)
+    else:
+        text = str(value)
+    text = redact(" ".join(text.split()))
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def _summarize_result(content) -> str:
+    """A readable one-liner for common tool results, else truncated JSON."""
+    if isinstance(content, SearchResults):
+        ids = [h.product_id for h in content.results]
+        return _short(f"{content.total_matches} matches, {len(ids)} returned: {', '.join(ids)}")
+    if isinstance(content, StockReport):
+        sizes = ", ".join(f"{s.size}={s.quantity}" for s in content.sizes)
+        return _short(f"{content.product_id}: {sizes} (requested {content.requested_size or 'all'})")
+    if isinstance(content, list) and content and isinstance(content[0], ProductPrice):
+        return _short(", ".join(f"{p.product_id}=${p.price:.2f}" for p in content))
+    return _short(content)
+
+
+def _tool_calls_from(messages: list[ModelMessage]) -> tuple[list[AuditToolCall], str | None]:
+    """Pair each ToolCallPart with its ToolReturnPart / RetryPromptPart by tool_call_id."""
+    calls: dict[str, AuditToolCall] = {}
+    order: list[str] = []
+    finish_reason = None
+    for m in messages:
+        if isinstance(m, ModelResponse):
+            finish_reason = getattr(m, "finish_reason", None) or finish_reason
+        for part in m.parts:
+            if isinstance(part, ToolCallPart):
+                calls[part.tool_call_id] = AuditToolCall(tool=part.tool_name, args=_short(part.args_as_dict()))
+                order.append(part.tool_call_id)
+            elif isinstance(part, ToolReturnPart) and part.tool_call_id in calls:
+                calls[part.tool_call_id].result = _summarize_result(part.content)
+            elif isinstance(part, RetryPromptPart) and part.tool_call_id in calls:
+                calls[part.tool_call_id].retried = True
+                calls[part.tool_call_id].result = _short(part.content)
+    return [calls[i] for i in order], (str(finish_reason) if finish_reason else None)
+
+
+def new_audit_entry(*, user_id: int | None, page_path: str, product_id: str | None, message: str,
+                    model: str, history_messages: int, stop_reason: str = "final_result") -> AuditEntry:
+    return AuditEntry(
+        id=uuid.uuid4().hex[:12],
+        time=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        user=f"user:{user_id}" if user_id else "guest",
+        page=page_path + (f" [{product_id}]" if product_id else ""),
+        message=_short(message, 200),
+        model=model,
+        history_messages=history_messages,
+        stop_reason=stop_reason,
+    )
+
+
+def append_audit(entry: AuditEntry) -> None:
+    """Append one entry. Never truncates: existing entries are read back and kept."""
+    with _audit_lock:
+        AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        entries: list = []
+        if AUDIT_PATH.exists():
+            try:
+                entries = json.loads(AUDIT_PATH.read_text(encoding="utf-8") or "[]")
+            except json.JSONDecodeError:
+                # Never wipe history: keep the unreadable file aside and start a new array.
+                AUDIT_PATH.replace(AUDIT_PATH.with_suffix(f".corrupt-{int(time.time())}.json"))
+                entries = []
+        entries.append(entry.model_dump(mode="json"))
+        tmp = AUDIT_PATH.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(entries, indent=1, ensure_ascii=False), encoding="utf-8")
+        for attempt in range(5):  # OneDrive can hold the file briefly while syncing
+            try:
+                os.replace(tmp, AUDIT_PATH)
+                return
+            except PermissionError:
+                time.sleep(0.1 * (attempt + 1))
+        os.replace(tmp, AUDIT_PATH)

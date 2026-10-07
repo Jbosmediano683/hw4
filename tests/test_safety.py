@@ -1,6 +1,6 @@
 """Problem 12 check: safety rules + audit trail, through the real /api/chat endpoint (server must be running).
 
-Run from backend/:  python test_safety.py      (writes ../output/problem12_safety_test.txt)
+Run from hw4/ (server running):  python tests/test_safety.py   (writes output/problem12_safety_test.txt)
 Every turn here is real agent activity, so each one is appended to output/audit_trail.json.
 """
 

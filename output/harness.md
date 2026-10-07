@@ -25,7 +25,7 @@ verification behind each piece.
  │ ChatResults / ChatUI / Auth contexts │◀──────────│   │    prompt: prompts/prompt.md + session    │
  └─────────────────────────────────────┘  JSON +    │   │    tools:  tools.py (SQL, read-only)       │
                                           HttpOnly  │   ├─ card vetting → ProductCards from the DB  │
-                                          cookie    │   └─ audit.append() → output/audit_trail.json │
+                                          cookie    │   └─ append_audit() → output/audit_trail.json │
                                                     │ chat_store (history) · auth (sessions)        │
                                                     └──────────────────┬───────────────────────────┘
                                                                        ▼
@@ -37,7 +37,8 @@ verification behind each piece.
 |---|---|
 | Front end | `frontend/src/`: `App.tsx`, `pages/*`, `components/ChatWidget.tsx`, `ProductCard.tsx`, `NavBar.tsx`, `CampusBackdrop.tsx`, `StoreGallery.tsx`; contexts `auth.tsx`, `chatResults.tsx`, `chatUI.tsx`; `api.ts` (memoized fetches) |
 | API | `backend/main.py` (routes, rate limit, gzip, image caching), `auth.py` (accounts and sessions), `chat_store.py` (history) |
-| Agent | `backend/agent.py` (wiring and run loop), `tools.py` (DB tools), `models.py` (types), `prompts/prompt.md` (system prompt), `audit.py` (audit trail and redaction) |
+| Agent (exactly four files) | `backend/agent.py` (wiring, run loop, audit trail, redaction), `tools.py` (DB tools), `models.py` (types), `prompts/prompt.md` (system prompt) |
+| Tests | `tests/`: `test_tools_agent.py`, `test_page_results.py`, `test_safety.py`, `bench_agent.py` (kept outside `backend/` so they don't trigger server reloads) |
 | Data | `data/campus_customs.db`, `data/products/*.jpg`, `frontend/public/crests/*.png`, `frontend/public/about/` |
 
 ## A2. One chat turn, end to end
@@ -153,7 +154,7 @@ verification behind each piece.
 
 | Guard | Where |
 |---|---|
-| Card-like numbers redacted before the model, chat history, or audit sees them (`audit.redact`) | `main.py` |
+| Card-like numbers redacted before the model, chat history, or audit sees them (`agent.redact`) | `main.py` |
 | User identity from the HttpOnly session cookie only; history from the DB for logged-in users | `auth.py`, `main.py` |
 | Product cards and page results vetted against tool-returned ids and rebuilt from the DB | `agent.run_chat` |
 | Input caps (message ≤1000 chars, history ≤12, field lengths) via Pydantic | `models.py` |
@@ -167,9 +168,9 @@ verification behind each piece.
 ## A6. Audit trail — `output/audit_trail.json`
 
 - **Format:** a JSON array of `AuditEntry` objects, one per chat turn. **Append-only:** entries are never edited or removed, and the file is never reset between runs. An unreadable file is moved aside (`audit_trail.corrupt-<time>.json`), never overwritten.
-- **Writes:** `audit.append()` takes a lock, reads the array, appends, writes a temp file, then `os.replace` (atomic, with retries if OneDrive briefly holds the file). A failed audit write is logged but never breaks a shopper's chat.
+- **Writes:** `agent.append_audit()` takes a lock, reads the array, appends, writes a temp file, then `os.replace` (atomic, with retries if OneDrive briefly holds the file). A failed audit write is logged but never breaks a shopper's chat.
 - **What a turn records:** time (UTC), user (`user:<id>` or `guest`), page, message (redacted, ≤200 chars), model, history size, each **tool call** (name, short args, short result, retried?), **stop reason**, finish reason, reply (≤200), number of cards, page-results title and count, model requests, input/output/cached tokens, and duration.
-- **Coverage:** every turn that goes through `agent.run_chat` (the website and `/api/chat`, plus `test_page_results.py` and `test_safety.py`) is audited. The developer benchmarks `bench_agent.py` and `test_tools_agent.py` call the agent directly to measure it, so they don't add audit entries.
+- **Coverage:** every turn that goes through `agent.run_chat` (the website and `/api/chat`, plus `tests/test_page_results.py` and `tests/test_safety.py`) is audited. The developer benchmarks `tests/bench_agent.py` and `tests/test_tools_agent.py` call the agent directly to measure it, so they don't add audit entries.
 - **Stop reasons:**
 
   | Value | Meaning |
@@ -265,10 +266,10 @@ Test login: `test@campuscustoms.yale.edu` / `password`. New accounts can be crea
 
 | Command | What it checks | Output |
 |---|---|---|
-| `python test_tools_agent.py` (backend/) | Price, stock, and description answers vs the DB | `output/problem6_tool_test.txt` |
-| `python test_page_results.py` (backend/) | Browse questions put the right cards on the page | `output/problem7_page_results_test.txt` |
-| `python bench_agent.py <label>` (backend/) | Latency, calls, tokens, and correctness per turn | `output/bench_agent.json` |
-| `python test_safety.py` (backend/, server running) | Safety rules through `/api/chat`; audit entries appended | `output/problem12_safety_test.txt` |
+| `python tests/test_tools_agent.py` (hw4/) | Price, stock, and description answers vs the DB | `output/problem6_tool_test.txt` |
+| `python tests/test_page_results.py` (hw4/) | Browse questions put the right cards on the page | `output/problem7_page_results_test.txt` |
+| `python tests/bench_agent.py <label>` (hw4/) | Latency, calls, tokens, and correctness per turn | `output/bench_agent.json` |
+| `python tests/test_safety.py` (hw4/, server running) | Safety rules through `/api/chat`; audit entries appended | `output/problem12_safety_test.txt` |
 | `python scripts/app_check.py` (hw4/, app running) | Live-site screenshots and checks | `output/app_check.html` |
 | `python frontend/scripts/extract_crests.py` (hw4/, needs Pillow and the data pack) | Rebuilds college crests from product photos | `frontend/public/crests/` |
 
@@ -330,6 +331,10 @@ Test login: `test@campuscustoms.yale.edu` (password given in the assignment).
 
 ### `sqlite_sequence`
 Internal SQLite table that tracks autoincrement counters. Not used by the app.
+
+### Added by the app at startup (no manual setup)
+- `sessions` table: `token_hash`, `user_id`, `created_at`, `expires_at` (login sessions; section 3).
+- `chat_messages.page_results_json` column plus an index on `(user_id, id)` (customer memory; section 7).
 
 ### Data observations for later problems
 - **Stock is size-level.** Availability answers need a join on `catalogue` + `inventory` and a filter on `quantity > 0`.
@@ -527,7 +532,7 @@ messages.
   - Exact numbers are given when asked.
   - No holds or reservations.
 
-### Verified (2026-10-05). Full log: `output/problem6_tool_test.txt` (run `python test_tools_agent.py` from `backend/`)
+### Verified (2026-10-05). Full log: `output/problem6_tool_test.txt` (run `python tests/test_tools_agent.py` from `hw4/`)
 | Question | Tool calls | Reply | DB truth |
 |---|---|---|---|
 | How much is the Boola Boola T Shirt? | search → price | **$32.00** | 32.0 ✓ |
@@ -600,7 +605,7 @@ Products page renders "✦ From your chat — Hoodies" grid of <ProductCard> →
 - **Back** returned to the 27 chat results. **Show all** brought back 102 products, and a catalogue card still opened its detail page. The chat **chip** reopened the 27 results.
 - Follow-up "just the navy ones under $70" replaced the page with "Navy hoodies under $70".
 
-**Agent + DB check** (`python test_page_results.py` from `backend/`; log in `output/problem7_page_results_test.txt`):
+**Agent + DB check** (`python tests/test_page_results.py` from `hw4/`; log in `output/problem7_page_results_test.txt`):
 
 | Question | page_results | DB check |
 |---|---|---|
@@ -695,7 +700,7 @@ The full write-up, with measurements and where to see each feature, is in
   About 94% of each call's input tokens are now served from the provider's prompt cache.
 - **History window:** 12 messages (was 20), for both DB history and guest history. `MAX_HISTORY_MESSAGES` in `models.py`.
 - **Rate limit:** `/api/chat` allows 20 turns per 60 s per user (or per IP for guests), returning 429 with a friendly message.
-- **Benchmark** (`backend/bench_agent.py`, results in `output/bench_agent.json`): 6.34 s → 4.23 s per turn, 3.0 → 2.33 model calls, 10,143 → 7,929 input tokens, 315 → 201 output tokens, 6/6 correct both runs.
+- **Benchmark** (`tests/bench_agent.py`, results in `output/bench_agent.json`): 6.34 s → 4.23 s per turn, 3.0 → 2.33 model calls, 10,143 → 7,929 input tokens, 315 → 201 output tokens, 6/6 correct both runs.
 
 ### Tool changes
 - `search_catalogue` gained a **`category`** argument: `hoodies | crewnecks | quarter-zips | tees | long-sleeve | outerwear`, an exact filter that comes before ranking and the limit.
@@ -753,16 +758,16 @@ Design rationale: **`output/design.md`**. Harness-relevant pieces:
 ## 11. Audit trail, safety rules, and finishing the harness (Problem 12)
 
 - **Audit trail:**
-  - `backend/audit.py` plus `AuditEntry` / `AuditToolCall` in `models.py`. `agent.run_chat` builds an entry for every turn and appends it in all outcomes (`final_result`, `content_filter`, `usage_limit`, `error`, including cancellations). `main.py` logs `rate_limited` turns that never reach the agent.
+  - The audit section of `backend/agent.py` (`new_audit_entry`, `append_audit`, `redact`; originally a separate `audit.py`, folded into `agent.py` so the agent stays four files) plus `AuditEntry` / `AuditToolCall` in `models.py`. `agent.run_chat` builds an entry for every turn and appends it in all outcomes (`final_result`, `content_filter`, `usage_limit`, `error`, including cancellations). `main.py` logs `rate_limited` turns that never reach the agent.
   - Tool calls are paired call-to-result by `tool_call_id` from `result.new_messages()`. `RetryPromptPart`s mark retried calls.
   - The details are in A6.
 - **Safety:**
   - The prompt's short "Safety basics" became five groups of **Safety rules** (A5).
-  - Two server guards were added: card-number redaction (`audit.redact`, applied to the message, guest history, chat storage, and the log) and auditing of every outcome.
+  - Two server guards were added: card-number redaction (`agent.redact`, applied to the message, guest history, chat storage, and the log) and auditing of every outcome.
 - **Harness:** Part A (A1–A7) was written as the finished reference. Sections 1–10 remain as the build log.
 
 ### Verified (October 6, 2026)
-`python test_safety.py` against the live API (log: `output/problem12_safety_test.txt`):
+`python tests/test_safety.py` against the live API (log: `output/problem12_safety_test.txt`):
 
 | Probe | Agent reply (abridged) | Tool calls in the audit |
 |---|---|---|

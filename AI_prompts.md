@@ -247,6 +247,18 @@ it helps, and where to see it.
 > innovative design. Write "output/design.md": what you changed and why it
 > should help customers stick around and buy. Keep it concrete and short
 
+**What the first prompt produced** (all verified in the browser):
+- The Bulldog Concierge chat, with suggestion chips that change with the page.
+- A residential-college marquee and Curated Edits that ask the concierge and
+  fill the page with results.
+- Product cards with swatches, a size strip, honest low-stock badges, and a
+  3D tilt.
+- A zoom lens and size picker on product pages.
+- A rotating headline, scroll reveals, and page fades.
+
+`output/design.md` explains each change and why it should help customers
+stick around and buy.
+
 **Follow-up prompt**
 
 > Why did you choose a pink font? It doesn't match Yale's blue and white color
@@ -291,17 +303,6 @@ had no rights-cleared photos of the real store, it shows labelled
 illustrations until photos are added. It also added the shop's real history
 (57 Broadway, since the 1970s) to the copy.
 
-**What the first prompt produced** (all verified in the browser):
-- The Bulldog Concierge chat, with suggestion chips that change with the page.
-- A residential-college marquee and Curated Edits that ask the concierge and
-  fill the page with results.
-- Product cards with swatches, a size strip, honest low-stock badges, and a
-  3D tilt.
-- A zoom lens and size picker on product pages.
-- A rotating headline, scroll reveals, and page fades.
-
-`output/design.md` explains each change and why it should help customers
-stick around and buy.
 
 ---
 
@@ -387,5 +388,33 @@ None needed. The vibe coder:
 
 The college crests, which are cropped from product images, are kept out of
 git and rebuilt locally from the data pack.
+
+---
+
+## Final check — Requirements review
+
+**Prompt 1**
+
+> Can you double check my repo code to ensure that I've properly addressed all
+> questions that the homework asked me for? Please go through each step and
+> ensure that I followed the instructions properly. If any changes need to be
+> made, please update my HW 4 and also update the github repo website as
+> needed.
+
+**Follow-up prompt**
+
+None needed. The vibe coder checked every problem's instructions against the
+repo and fixed what didn't fully comply:
+- **The agent is now exactly four files.** `agent.py` had imported a separate
+  `audit.py`; that code was folded into `agent.py`.
+- **`backend/` matches the expected layout.** The test and benchmark scripts
+  moved to `tests/`.
+- **`output/design.md` is short again.** It was rewritten as one concrete
+  table ("keep it concrete and short").
+- **Docs are accurate.** Updated: file paths, the tables the app adds to the
+  database, and the catalogue size measured after Problem 10.
+
+All tests were rerun (safety 8/8; page results 27/27, 23/23, 1/1), the clean
+`hw4/` copy was re-tested like a grader, and the update was pushed to GitHub.
 
 ---

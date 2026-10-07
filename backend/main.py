@@ -20,8 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from agent import run_chat
-import audit
+from agent import append_audit, new_audit_entry, redact, run_chat
 import chat_store
 import tools
 from auth import build_router, init_auth_tables
@@ -166,19 +165,19 @@ async def chat(
     try:
         check_chat_rate(f"user:{user['id']}" if user else f"ip:{request.client.host if request.client else '?'}")
     except HTTPException:
-        blocked = audit.new_entry(
+        blocked = new_audit_entry(
             user_id=user["id"] if user else None, page_path=req.page_context.path,
             product_id=req.page_context.product_id, message=req.message, model="(not called)",
             history_messages=0, stop_reason="rate_limited",
         )
-        audit.append(blocked)
+        append_audit(blocked)
         raise
     # Safety: card-like numbers never reach the model, the chat history table, or the audit log.
-    message = audit.redact(req.message)
+    message = redact(req.message)
     history = (
         chat_store.recent_history(DB_PATH, user["id"])
         if user
-        else [h.model_copy(update={"content": audit.redact(h.content)}) for h in req.history[-12:]]
+        else [h.model_copy(update={"content": redact(h.content)}) for h in req.history[-12:]]
     )
     try:
         response = await run_chat(message, history, user=user, page=req.page_context)
